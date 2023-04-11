@@ -1,20 +1,31 @@
-var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddCors(options =>
 {
-  options.AddPolicy(
-    name: MyAllowSpecificOrigins,
-    policy => {
-      policy.WithOrigins("http://localhost:5173"); // TODO config
-    });
+  options.AddPolicy("AllowAnyOrigin", builder =>
+  {
+    builder
+      .AllowAnyOrigin()
+      .AllowAnyMethod()
+      .AllowAnyHeader();
+  });
 });
 
 var app = builder.Build();
 
-app.UseCors(MyAllowSpecificOrigins);
+app.UseCors("AllowAnyOrigin");
 
 app.MapGet("/", () => "Hello World!");
+
+app.MapPost("/tab/parse", ([FromBody] string tabText) =>
+{
+  Song song = new Song(tabText);
+  return JsonSerializer.Serialize(song);
+});
+
+
 
 app.Run();
