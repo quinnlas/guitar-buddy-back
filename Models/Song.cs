@@ -4,41 +4,65 @@ class Song
 {
   public List<Measure> measures { get; }
 
-  public Song(String tabText)
+  public Song(TabForm tabForm)
   {
-    // parse tabText into a Song
 
-    // break the text into "blocks"
-    // blocks are consecutive lines that are part of the actual tab
-    // since the text will have filler stuff like song section names, lyrics, legend
+    List<List<string>> blocks = getCleanedTabBlocks(tabForm.tab);
 
-    // starts and ends with |
-    // includes - | / \ ( ) _ and alphanumeric
-    // | is the measure end character
-    // - is a space/rest character
-    // /\ are for slides
-    // () are for grouping
-    // _ is for sustaining a note
-    // 0-9 are the fret numbers
-    // hp are for hammer-on and pickup
-    // br are for bend and release
+    this.measures = new List<Measure>();
 
-    int[] tuning = new[] { 40, 45, 50, 55, 59, 64 };
+    foreach (List<string> block in blocks)
+    {
+      // a block can have multiple measures
+      this.measures.AddRange(parseBlockIntoMeasures(block, tabForm.tuning));
+    }
+  }
 
+
+  // starts and ends with |
+  // includes - | / \ ( ) _ and alphanumeric
+  // | is the measure end character
+  // - is a space/rest character
+  // /\s are for slides
+  // () are for grouping
+  // _= are for sustaining a note
+  // 0-9 are the fret numbers
+  // hp are for hammer-on and pickup
+  // br are for bend and release
+  // o is for repeat bar ASCII art
+  // ~ is for vibrato
+  private static Regex blockLineRegex = new Regex(@"\|[\-|\/\\\(\)_=~0-9hpbrso]*\|", RegexOptions.IgnoreCase);
+  private static Regex noteRegex = new Regex(@"\d+");
+
+  /*
+    returns a list of normalised blocks eg
+
+    |-------5-7-----7-|-8-----8-2-----2-|-0---------0-----|-----------------|
+    |-----5-----5-----|---5-------3-----|---1---1-----1---|-0-1-1-----------|
+    |---5---------5---|-----5-------2---|-----2---------2-|-0-2-2---2-------|
+    |-7-------6-------|-5-------4-------|-3---------------|-----------------|
+    |-----------------|-----------------|-----------------|-2-0-0---0--/8-7-|
+    |-----------------|-----------------|-----------------|-----------------|
+
+    each block is represented as a list of lines
+  */
+  private static List<List<string>> getCleanedTabBlocks(string tabText)
+  {
     // find consecutive lines
     string[] lines = tabText.Split('\n');
+
     List<List<string>> blocks = new List<List<string>>();
     List<string> currentBlockLines = new List<string>();
 
     for (int i = 0; i < lines.Length; i++)
     {
-      // TODO where to store regexes
-      Regex blockLineRx = new Regex(@"\|[\-|\/\\(\)_0-9hpbr]*\|");
-      if (blockLineRx.IsMatch(lines[i]))
+      bool thisLineMatches = blockLineRegex.IsMatch(lines[i]);
+      if (thisLineMatches)
       {
         currentBlockLines.Add(lines[i]);
       }
-      else if (currentBlockLines.Count > 0)
+
+      if ((!thisLineMatches || i == lines.Length - 1) && currentBlockLines.Count > 0)
       {
         // handle end of block
         blocks.Add(currentBlockLines);
@@ -46,49 +70,62 @@ class Song
       }
     }
 
-    this.measures = new List<Measure>();
+    // // debug printing
+    // foreach (List<string> block in blocks)
+    // {
+    //   foreach (string line in block)
+    //   {
+    //     Console.WriteLine(line);
+    //   }
+    //   Console.WriteLine();
+    // }
 
-    // todo split into organized functions
-    // parse blocks into measures
-    foreach (List<string> block in blocks)
+    return blocks;
+  }
+
+  private static List<Measure> parseBlockIntoMeasures(List<string> block, int[] tuning)
+  {
+    List<Measure> measures = new List<Measure>();
+
+    // parse blocks one measure at a time
+    int measureStart = block[0].IndexOf('|') + 2; // TODO assumes one beginning spacer
+    int measureEnd = block[0].IndexOf('|', measureStart);
+    while (true)
     {
-      int startIndex = block[0].IndexOf('|') + 2; // skip start of first measure (assumes extra spacer)
-      while (startIndex < block[0].Length - 1)
+      Measure measure = new Measure();
+      int measureLength = measureEnd - measureStart;
+
+      // read notes from each line of the block
+      for (int lineIndex = 0; lineIndex < block.Count; lineIndex++)
       {
-        Measure measure = new Measure();
-        int measureEnd = block[0].IndexOf('|', startIndex);
+        string blockLine = block[lineIndex];
+        // trim to the current measure
+        string measureLine = blockLine.Substring(measureStart, measureLength);
+        MatchCollection noteMatches = noteRegex.Matches(measureLine);
 
-        // validate that remaining lines have the same length of measures
-        for (int lineIndex = 1; lineIndex < block.Count; lineIndex++)
+        foreach (Match noteMatch in noteMatches)
         {
-          int thisLineMeasureEnd = block[0].IndexOf('|', startIndex);
-          if (thisLineMeasureEnd != measureEnd) throw new Exception("malformed block (measures are not the same length)");
+          Note note = new Note();
+          note.measureStart = ((float)noteMatch.Index) / (float)measureLength; // TODO simple rhythm guessing
+          note.pitch = tuning[lineIndex] + Int32.Parse(noteMatch.Value);
+          measure.notes.Add(note);
         }
-
-        // TODO won't work with multiple digit frets
-        // assumes extra dash at start
-        int numParts = measureEnd; // the denominator of the fraction of a measure that each character represents
-        // iterate through each column and take the note TODO multiple digit notes
-        for (int i = 0; i < measureEnd; i++)
-        {
-          // iterate through each block line
-          for (int j = 0; j < block.Count; j++)
-          {
-            string currentChar = block[j][i] + "";
-            Regex noteRx = new Regex(@"[0-9]");
-            if (noteRx.IsMatch(currentChar))
-            {
-              Note note = new Note();
-              note.measureStart = ((float)i) / ((float)numParts);
-              note.pitch = tuning[j] + Int32.Parse(currentChar);
-              measure.notes.Add(note);
-            }
-          }
-        }
-
-        this.measures.Add(measure);
-        startIndex = measureEnd + 1;
       }
+
+      // sort measure by note order
+      measure.notes.Sort((Note a, Note b) =>
+      {
+        return a.measureStart.CompareTo(b.measureStart);
+      });
+
+      measures.Add(measure);
+
+      measureStart = measureEnd + 2;
+      if (measureStart >= block[0].Length) break;
+      measureEnd = block[0].IndexOf('|', measureStart);
+      if (measureEnd == -1) break;
     }
+
+    return measures;
   }
 }

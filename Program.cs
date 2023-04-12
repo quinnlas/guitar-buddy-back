@@ -20,9 +20,9 @@ app.UseCors("AllowAnyOrigin");
 
 app.MapGet("/", () => "Hello World!");
 
-app.MapPost("/tab/parse", ([FromBody] string tabText) =>
+app.MapPost("/tab/parse", ([FromBody] TabForm tabForm) =>
 {
-  Song song = new Song(tabText);
+  Song song = new Song(tabForm);
   return JsonSerializer.Serialize(song);
 });
 
