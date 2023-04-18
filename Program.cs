@@ -26,6 +26,4 @@ app.MapPost("/tab/parse", ([FromBody] TabForm tabForm) =>
   return JsonSerializer.Serialize(song);
 });
 
-
-
 app.Run();
