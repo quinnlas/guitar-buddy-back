@@ -1,22 +1,25 @@
 using System.Text.RegularExpressions;
 
-class Song
+public class Song
 {
+  public static int[] STANDARD_TUNING = new int[] { 64, 59, 55, 50, 45, 40 };
+
   public List<Measure> measures { get; }
 
-  public Song(TabForm tabForm)
+  public Song(string tab, int[] tuning)
   {
-
-    List<List<string>> blocks = getCleanedTabBlocks(tabForm.tab);
+    List<List<string>> blocks = getCleanedTabBlocks(tab);
 
     this.measures = new List<Measure>();
 
     foreach (List<string> block in blocks)
     {
       // a block can have multiple measures
-      this.measures.AddRange(parseBlockIntoMeasures(block, tabForm.tuning));
+      this.measures.AddRange(parseBlockIntoMeasures(block, tuning));
     }
   }
+
+  public Song(TabForm tabForm) : this(tabForm.tab, tabForm.tuning) { }
 
 
   // starts and ends with |
@@ -106,8 +109,8 @@ class Song
         foreach (Match noteMatch in noteMatches)
         {
           Note note = new Note();
-          note.measureStart = ((float)noteMatch.Index) / (float)measureLength; // TODO simple rhythm guessing
           note.pitch = tuning[lineIndex] + Int32.Parse(noteMatch.Value);
+          note.measureStart = ((float)noteMatch.Index) / (float)measureLength; // TODO simple rhythm guessing
           measure.notes.Add(note);
         }
       }
