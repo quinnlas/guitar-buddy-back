@@ -6,6 +6,9 @@ public class Song
 
   public List<Measure> measures { get; }
 
+  public Song() {
+    this.measures = new List<Measure>();
+  }
   public Song(string tab, int[] tuning)
   {
     List<List<string>> blocks = getCleanedTabBlocks(tab);
@@ -73,16 +76,6 @@ public class Song
       }
     }
 
-    // // debug printing
-    // foreach (List<string> block in blocks)
-    // {
-    //   foreach (string line in block)
-    //   {
-    //     Console.WriteLine(line);
-    //   }
-    //   Console.WriteLine();
-    // }
-
     return blocks;
   }
 
@@ -130,5 +123,11 @@ public class Song
     }
 
     return measures;
+  }
+
+  public override bool Equals(object obj) {
+    if (obj.GetType() != typeof(Song)) return false;
+
+    return this.measures.SequenceEqual(((Song)obj).measures);
   }
 }
