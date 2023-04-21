@@ -24,9 +24,27 @@ public class Playing
   private Song song;
   private List<PlayingMeasure> playingMeasures;
 
+  private int[] tuning;
+
+  private int numFrets;
+
+  // 12th fret should be 13 inches
+  // 1.75 in between top/bottom string = .35in between each string
+  private double[] fretDistances;
+  private double stringDistance;
+
   public Playing(Song song, int[] tuning, int numFrets)
   {
     this.song = song;
+    this.tuning = tuning;
+    this.numFrets = numFrets;
+
+    this.fretDistances = new double[numFrets + 1];
+    for (int fret = 0; fret <= numFrets; fret++) {
+      this.fretDistances[fret] = 26.0 / Math.Pow(2.0, (double)fret / 12.0); // TODO different guitar lengths
+    }
+    this.stringDistance = .35; // TODO custom
+
     this.playingMeasures = song.measures.Select(measure =>
     {
       PlayingMeasure pm = new PlayingMeasure();
@@ -34,11 +52,13 @@ public class Playing
       pm.notes = measure.notes.Select(note =>
       {
         PlayingNote pn = new PlayingNote();
-        // find the first string the has the right note
+        // find the any string that has the right note
+        // find last index will pick a lower string and therefore higher fret to start with
+        // this speeds up optimizing for distance
         // this causes an edge case if a chord ends up with multiple notes on the same string
         // this would be impossible to play so optimizing will fix it
         // but it would break ToString if not fixed
-        pn.stringIndex = Array.FindIndex(tuning, openNote => openNote <= note.pitch && (openNote + numFrets) >= note.pitch);
+        pn.stringIndex = Array.FindLastIndex(tuning, openNote => openNote <= note.pitch && (openNote + numFrets) >= note.pitch);
         pn.fret = note.pitch - tuning[pn.stringIndex];
 
         return pn;
@@ -48,9 +68,86 @@ public class Playing
     }).ToList();
   }
 
-  public void optimizeDistance()
-  {
+  private bool stringHasNote(int pitch, int openNote) {
+    return openNote <= pitch && (openNote + this.numFrets) >= pitch;
+  }
 
+  private int getPitch(PlayingNote pn) {
+    return pn.fret + this.tuning[pn.stringIndex];
+  }
+
+  public void optimizeDistance(int iterations)
+  {
+    this.playingMeasures = SimulatedAnnealing.solve<List<PlayingMeasure>>(
+      this.playingMeasures,
+      iterations,
+      genNeighbor,
+      scoreDistance
+    );
+  }
+
+  private static Random rand = new Random();
+
+  private List<PlayingMeasure> genNeighbor(List<PlayingMeasure> current) {
+    // TODO more efficient if mutation is ok so we want to make that possible somehow (check salesman.js from other project)
+    // TODO add totalNotes property to Playing (so we can pick a random note with equal chance for each)
+    // TODO change Playing to PlayingTab
+    // TODO fix chord on same string issue
+    int selectedMeasureIndex, selectedNoteIndex;
+    PlayingNote newNote;
+    while (true) {
+      // randomly do stuff until something is done (TODO improve this comment)
+      // TODO var
+      selectedMeasureIndex = (int)rand.NextInt64(current.Count);
+      var selectedMeasure = current[selectedMeasureIndex];
+      selectedNoteIndex = (int)rand.NextInt64(selectedMeasure.notes.Count);
+      var selectedNote = selectedMeasure.notes[selectedNoteIndex];
+
+      // TODO only move up or down one string, you want the nearest neighbor possible
+      // https://en.wikipedia.org/wiki/Simulated_annealing#Sufficiently_near_neighbour
+      var otherStringIndices = (new [] {0, 1, 2, 3, 4, 5})
+        .Where(strIndex => {
+          if (strIndex == selectedNote.stringIndex) return false;
+          return this.stringHasNote(this.getPitch(selectedNote), this.tuning[strIndex]);
+        })
+        .ToArray();
+
+      if (otherStringIndices.Length == 0) continue;
+      var newStrIndex = otherStringIndices[(int)rand.NextInt64(otherStringIndices.Length)];
+      var newFret = this.getPitch(selectedNote) - this.tuning[newStrIndex];
+      newNote = new PlayingNote();
+      newNote.fret = newFret;
+      newNote.stringIndex = newStrIndex;
+      break;
+    }
+
+    // assemble new measure list
+    var newList = current.ToList();
+    var newNoteList = newList[selectedMeasureIndex].notes.ToList();
+    newNoteList[selectedNoteIndex] = newNote;
+    var newMeasure = new PlayingMeasure();
+    newMeasure.notes = newNoteList;
+    newList[selectedMeasureIndex] = newMeasure;
+
+    return newList;
+  }
+
+  private double scoreDistance(List<PlayingMeasure> measures) {
+    double distance = 0;
+
+    for (int i = 0; i < measures.Count; i++) {
+      var measure = measures[i];
+      for (int j = i == 0 ? 1 : 0; j < measure.notes.Count; j++) {
+        var firstNoteMeasure = measures[j == 0 ? i - 1 : i];
+        var note1 = firstNoteMeasure.notes[j == 0 ? firstNoteMeasure.notes.Count - 1 : j - 1];
+        var note2 = measure.notes[j];
+        double xDist = this.fretDistances[note2.fret] - this.fretDistances[note1.fret];
+        double yDist = (note2.stringIndex - note1.stringIndex) * this.stringDistance;
+        distance += Math.Sqrt(xDist * xDist + yDist * yDist);
+      }
+    }
+
+    return distance;
   }
 
   // outputs the playing arrangement as a tab
