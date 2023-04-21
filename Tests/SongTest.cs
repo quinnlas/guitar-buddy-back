@@ -1,3 +1,5 @@
+// official examples: https://github.com/nunit/nunit-csharp-samples/blob/master/money/MoneyTest.cs
+
 [TestFixture]
 public class SongTest
 {
@@ -92,7 +94,6 @@ public class SongTest
       expectedMeasure.notes.Add(new Note(stringPitch + 1, 0.5));
     }
 
-    // TODO maintain this as sorted in the measure class somehow
     expectedMeasure.notes.Sort((Note a, Note b) =>
       {
         return a.measureStart.CompareTo(b.measureStart);
@@ -122,5 +123,27 @@ public class SongTest
     Song song = new Song(tab, Song.STANDARD_TUNING);
 
     Assert.That(song, Is.EqualTo(expected));
+  }
+
+  // test block where measure borders don't match up (throws)
+  [Test]
+  public void badLeftBorder()
+  {
+    // |-1-|
+    // a|-1|
+    string tab = String.Join('\n', trivialTab.Split('\n').Select((line, i) => i == 1 ? "a|-1|" : line));
+
+    Assert.Throws<Exception>(() => new Song(tab, Song.STANDARD_TUNING));
+  }
+
+  // test block where measure borders don't match up (throws)
+  [Test]
+  public void badRightBorder()
+  {
+    // |-1-|
+    // |-1|
+    string tab = String.Join('\n', trivialTab.Split('\n').Select((line, i) => i == 1 ? "|-1|" : line));
+
+    Assert.Throws<Exception>(() => new Song(tab, Song.STANDARD_TUNING));
   }
 }
