@@ -23,7 +23,6 @@ public class Song
 
   public Song(TabForm tabForm) : this(tabForm.tab, tabForm.tuning) { }
 
-
   // starts and ends with |
   // includes - | / \ ( ) _ and alphanumeric
   // | is the measure end character
