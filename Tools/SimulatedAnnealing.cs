@@ -2,21 +2,21 @@ class SimulatedAnnealing
 {
   public static T solve<T>(
   T start,
-  int maxK,
+  int maxIterations,
   Func<T, T> neighborFn,
   Func<T, double> scoreFn // lower is better
 )
   {
     var solution = start;
     double score = scoreFn(solution);
-    for (int k = 0; k < maxK; k++)
+    for (int iteration = 0; iteration < maxIterations; iteration++)
     {
-      if (k % 200000 == 0) Console.WriteLine((double)k / maxK * 100);
+      if (iteration % 200000 == 0) Console.WriteLine((double)iteration / maxIterations * 100);
       var newSolution = neighborFn(solution);
       double newScore = scoreFn(newSolution);
-      double delta = newScore - score;
+      double howMuchWorse = newScore - score;
 
-      if (delta < 0 || takeAnyway(k, delta))
+      if (howMuchWorse < 0 || takeAnyway(iteration, howMuchWorse))
       {
         solution = newSolution;
         score = newScore;
@@ -27,15 +27,18 @@ class SimulatedAnnealing
   }
 
   private static Random rand = new Random();
-  private static bool takeAnyway(int k, double delta)
+
+  // the probability of taking a bad solution decreases as the number of iterations increases
+  // probability decreases as howMuchWorse increases
+  private static bool takeAnyway(int iteration, double howMuchWorse)
   {
     // see https://www.mathworks.com/help/gads/simulated-annealing-options.html
     // for other options to compute temp and acceptance probability
-    double temp = 100 * Math.Pow(.95, k);
-    double acceptanceProbability = Math.Exp(-delta / temp);
+    double temp = 100 * Math.Pow(.95, iteration);
+    double acceptanceProbability = Math.Exp(-howMuchWorse / temp);
 
-    // Console.WriteLine($"Iteration:   {k}");
-    // Console.WriteLine($"Delta:       {delta}");
+    // Console.WriteLine($"Iteration:   {iteration}");
+    // Console.WriteLine($"Delta:       {howMuchWorse}");
     // Console.WriteLine($"Temperature: {temp}");
     // Console.WriteLine($"Probability: {acceptanceProbability}");
     // Console.WriteLine();
