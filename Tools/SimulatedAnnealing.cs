@@ -7,11 +7,12 @@ class SimulatedAnnealing
   Func<T, double> scoreFn // lower is better
 )
   {
-    T solution = start;
+    var solution = start;
     double score = scoreFn(solution);
     for (int k = 0; k < maxK; k++)
     {
-      T newSolution = neighborFn(solution);
+      if (k % 200000 == 0) Console.WriteLine((double)k / maxK * 100);
+      var newSolution = neighborFn(solution);
       double newScore = scoreFn(newSolution);
       double delta = newScore - score;
 

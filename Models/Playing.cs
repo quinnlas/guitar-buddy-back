@@ -33,25 +33,28 @@ public class Playing
   private double[] fretDistances;
   private double stringDistance;
 
-  public Playing(Song song, int[] tuning, int numFrets)
+  public Playing(OptimizeForm form)
   {
-    this.song = song;
-    this.tuning = tuning;
-    this.numFrets = numFrets;
+    this.song = form.song;
+    this.tuning = form.tuning;
+    this.numFrets = form.numFrets;
 
     this.fretDistances = new double[numFrets + 1];
     for (int fret = 0; fret <= numFrets; fret++) {
-      this.fretDistances[fret] = 26.0 / Math.Pow(2.0, (double)fret / 12.0); // TODO different guitar lengths
+      // 12 notes in an octave
+      // ratio between adjacent notes is equal
+      // octave ratio is double (double the frequency/half the length)
+      this.fretDistances[fret] = form.neckInches / Math.Pow(2.0, (double)fret / 12.0);
     }
-    this.stringDistance = .35; // TODO custom
+    this.stringDistance = form.inchesBetweenStrings;
 
     this.playingMeasures = song.measures.Select(measure =>
     {
-      PlayingMeasure pm = new PlayingMeasure();
+      var pm = new PlayingMeasure();
 
       pm.notes = measure.notes.Select(note =>
       {
-        PlayingNote pn = new PlayingNote();
+        var pn = new PlayingNote();
         // find the any string that has the right note
         // find last index will pick a lower string and therefore higher fret to start with
         // this speeds up optimizing for distance
@@ -91,23 +94,19 @@ public class Playing
   private List<PlayingMeasure> genNeighbor(List<PlayingMeasure> current) {
     // TODO more efficient if mutation is ok so we want to make that possible somehow (check salesman.js from other project)
     // TODO add totalNotes property to Playing (so we can pick a random note with equal chance for each)
-    // TODO change Playing to PlayingTab
     // TODO fix chord on same string issue
     int selectedMeasureIndex, selectedNoteIndex;
     PlayingNote newNote;
     while (true) {
-      // randomly do stuff until something is done (TODO improve this comment)
-      // TODO var
+      // pick a random note that can be adjusted and randomly adjust it
       selectedMeasureIndex = (int)rand.NextInt64(current.Count);
       var selectedMeasure = current[selectedMeasureIndex];
       selectedNoteIndex = (int)rand.NextInt64(selectedMeasure.notes.Count);
       var selectedNote = selectedMeasure.notes[selectedNoteIndex];
 
-      // TODO only move up or down one string, you want the nearest neighbor possible
-      // https://en.wikipedia.org/wiki/Simulated_annealing#Sufficiently_near_neighbour
-      var otherStringIndices = (new [] {0, 1, 2, 3, 4, 5})
+      var otherStringIndices = (new [] { selectedNote.stringIndex - 1, selectedNote.stringIndex + 1 })
         .Where(strIndex => {
-          if (strIndex == selectedNote.stringIndex) return false;
+          if (strIndex < 0 || strIndex > 5) return false; // TODO
           return this.stringHasNote(this.getPitch(selectedNote), this.tuning[strIndex]);
         })
         .ToArray();
@@ -133,7 +132,7 @@ public class Playing
   }
 
   private double scoreDistance(List<PlayingMeasure> measures) {
-    double distance = 0;
+    double distance = 0.0;
 
     for (int i = 0; i < measures.Count; i++) {
       var measure = measures[i];
@@ -153,19 +152,19 @@ public class Playing
   // outputs the playing arrangement as a tab
   public override string ToString()
   {
-    string result = "";
+    var result = "";
 
     for (int mIndex = 0; mIndex < this.playingMeasures.Count; mIndex++)
     {
-      PlayingMeasure pm = this.playingMeasures[mIndex];
-      string[] measureLines = new[] { "|-", "|-", "|-", "|-", "|-", "|-" }; // TODO support diff number of strings
+      var pm = this.playingMeasures[mIndex];
+      var measureLines = new[] { "|-", "|-", "|-", "|-", "|-", "|-" }; // TODO support diff number of strings
 
       double lastMeasureStart = 0;
-      bool[] addedToLine = new[] { false, false, false, false, false, false }; // TODO
+      var addedToLine = new[] { false, false, false, false, false, false }; // TODO
 
       for (int nIndex = 0; nIndex < pm.notes.Count; nIndex++)
       {
-        PlayingNote pn = pm.notes[nIndex];
+        var pn = pm.notes[nIndex];
 
         double currentMeasureStart = this.song.measures[mIndex].notes[nIndex].measureStart;
         if (currentMeasureStart > lastMeasureStart)

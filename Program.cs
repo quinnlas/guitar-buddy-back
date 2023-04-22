@@ -22,7 +22,8 @@ app.MapGet("/", () => "Hello World!");
 
 app.MapPost("/tab/parse", ([FromBody] TabForm tabForm) =>
 {
-  Song song = new Song(tabForm);
+  var song = new Song(tabForm);
+
   return JsonSerializer.Serialize(song);
 });
 

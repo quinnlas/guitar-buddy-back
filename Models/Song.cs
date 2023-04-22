@@ -56,14 +56,14 @@ public class Song
   private static List<List<string>> getCleanedTabBlocks(string tabText)
   {
     // find consecutive lines
-    string[] lines = tabText.Split('\n');
+    var lines = tabText.Split('\n');
 
     List<List<string>> blocks = new List<List<string>>();
     List<string> currentBlockLines = new List<string>();
 
     for (int i = 0; i < lines.Length; i++)
     {
-      bool thisLineMatches = blockLineRegex.IsMatch(lines[i]);
+      var thisLineMatches = blockLineRegex.IsMatch(lines[i]);
       if (thisLineMatches)
       {
         currentBlockLines.Add(lines[i]);
@@ -147,18 +147,18 @@ public class Song
     parse it into a Measure object
   */
   private static Measure parseTabMeasure(List<string> tabMeasure, int[] tuning) {
-    Measure measure = new Measure();
+    var measure = new Measure();
 
     // read notes from each line of the block
     for (int lineIndex = 0; lineIndex < tabMeasure.Count; lineIndex++)
     {
       // trim to the current measure
-      string measureLine = tabMeasure[lineIndex];
-      MatchCollection noteMatches = noteRegex.Matches(measureLine);
+      var measureLine = tabMeasure[lineIndex];
+      var noteMatches = noteRegex.Matches(measureLine);
 
       foreach (Match noteMatch in noteMatches)
       {
-        Note note = new Note();
+        var note = new Note();
         note.pitch = tuning[lineIndex] + Int32.Parse(noteMatch.Value);
         note.measureStart = ((float)noteMatch.Index) / (float) measureLine.Length; // TODO simple rhythm guessing
         measure.notes.Add(note);

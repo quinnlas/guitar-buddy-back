@@ -12,7 +12,7 @@ public class Note
   public override bool Equals(object obj) {
     if (obj.GetType() != typeof(Note)) return false;
 
-    Note other = (Note) obj;
+    var other = (Note) obj;
 
     return other.pitch == this.pitch && other.measureStart == this.measureStart;
   }
