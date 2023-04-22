@@ -28,6 +28,8 @@ public class Playing
 
   private int numFrets;
 
+  private int numStrings;
+
   // 12th fret should be 13 inches
   // 1.75 in between top/bottom string = .35in between each string
   private double[] fretDistances;
@@ -38,6 +40,7 @@ public class Playing
     this.song = form.song;
     this.tuning = form.tuning;
     this.numFrets = form.numFrets;
+    this.numStrings = form.numStrings;
 
     this.fretDistances = new double[numFrets + 1];
     for (int fret = 0; fret <= numFrets; fret++) {
@@ -106,7 +109,7 @@ public class Playing
 
       var otherStringIndices = (new [] { selectedNote.stringIndex - 1, selectedNote.stringIndex + 1 })
         .Where(strIndex => {
-          if (strIndex < 0 || strIndex > 5) return false; // TODO
+          if (strIndex < 0 || strIndex >= this.numStrings) return false;
           return this.stringHasNote(this.getPitch(selectedNote), this.tuning[strIndex]);
         })
         .ToArray();
@@ -157,10 +160,11 @@ public class Playing
     for (int mIndex = 0; mIndex < this.playingMeasures.Count; mIndex++)
     {
       var pm = this.playingMeasures[mIndex];
-      var measureLines = new[] { "|-", "|-", "|-", "|-", "|-", "|-" }; // TODO support diff number of strings
+      var measureLines = new string[this.numStrings];
+      Array.Fill(measureLines, "|-"); // should return the array >:(
 
       double lastMeasureStart = 0;
-      var addedToLine = new[] { false, false, false, false, false, false }; // TODO
+      var addedToLine = new bool[this.numStrings];
 
       for (int nIndex = 0; nIndex < pm.notes.Count; nIndex++)
       {

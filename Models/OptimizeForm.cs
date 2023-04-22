@@ -11,4 +11,6 @@ public class OptimizeForm
   public double inchesBetweenStrings { get; set; }
 
   public int numFrets { get; set; }
+
+  public int numStrings { get; set; }
 }
