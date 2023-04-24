@@ -207,13 +207,13 @@ public class Playing
         {
           // add spacers to lines that didn't have notes
           if (!addedToLine[lIndex]) measureLines[lIndex] += "--";
-          // add spacers to all lines (TODO something something rhythm)
+          // add spacers to all lines (TODO change spacing based on rhythm)
           measureLines[lIndex] += "-";
         }
         addedToLine = new[] { false, false, false, false, false, false };
       }
 
-      measureLines[pn.stringIndex] += pn.fret.ToString().PadRight(2, '-'); // TODO more elegant handling of 2 digit frets
+      measureLines[pn.stringIndex] += pn.fret.ToString().PadRight(2, '-');
       addedToLine[pn.stringIndex] = true;
     }
 
