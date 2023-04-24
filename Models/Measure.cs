@@ -1,6 +1,6 @@
 public class Measure
 {
-  public List<Note> notes { get; }
+  public List<Note> notes { get; set; }
 
   public Measure()
   {

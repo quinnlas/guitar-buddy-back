@@ -4,7 +4,7 @@ public class Song
 {
   public static int[] STANDARD_TUNING = new int[] { 64, 59, 55, 50, 45, 40 };
 
-  public List<Measure> measures { get; }
+  public List<Measure> measures { get; set; }
 
   public Song()
   {
