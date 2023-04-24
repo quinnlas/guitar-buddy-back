@@ -104,6 +104,9 @@ public class Playing
       // pick a random note that can be adjusted and randomly adjust it
       selectedMeasureIndex = (int)rand.NextInt64(current.Count);
       var selectedMeasure = current[selectedMeasureIndex];
+
+      if (selectedMeasure.notes.Count == 0) continue;
+
       selectedNoteIndex = (int)rand.NextInt64(selectedMeasure.notes.Count);
       var selectedNote = selectedMeasure.notes[selectedNoteIndex];
 
@@ -140,8 +143,13 @@ public class Playing
     for (int i = 0; i < measures.Count; i++) {
       var measure = measures[i];
       for (int j = i == 0 ? 1 : 0; j < measure.notes.Count; j++) {
-        var firstNoteMeasure = measures[j == 0 ? i - 1 : i];
-        var note1 = firstNoteMeasure.notes[j == 0 ? firstNoteMeasure.notes.Count - 1 : j - 1];
+        PlayingNote note1;
+        if (j != 0) note1 = measure.notes[j - 1];
+        else {
+          // find closest previous measure with any notes
+          var measureWithNote1 = measures.Take(i).Last(m => m.notes.Count > 0);
+          note1 = measureWithNote1.notes.Last();
+        }
         var note2 = measure.notes[j];
         double xDist = this.fretDistances[note2.fret] - this.fretDistances[note1.fret];
         double yDist = (note2.stringIndex - note1.stringIndex) * this.stringDistance;
@@ -157,40 +165,60 @@ public class Playing
   {
     var result = "";
 
+    var blockLines = new string[this.numStrings];
+
     for (int mIndex = 0; mIndex < this.playingMeasures.Count; mIndex++)
     {
-      var pm = this.playingMeasures[mIndex];
-      var measureLines = new string[this.numStrings];
-      Array.Fill(measureLines, "|-"); // should return the array >:(
+      var measureLines = this.measureIndexToLines(mIndex);
+      int measureLength = measureLines[0].Length;
 
-      double lastMeasureStart = 0;
-      var addedToLine = new bool[this.numStrings];
-
-      for (int nIndex = 0; nIndex < pm.notes.Count; nIndex++)
-      {
-        var pn = pm.notes[nIndex];
-
-        double currentMeasureStart = this.song.measures[mIndex].notes[nIndex].measureStart;
-        if (currentMeasureStart > lastMeasureStart)
-        {
-          lastMeasureStart = currentMeasureStart;
-          for (int lIndex = 0; lIndex < measureLines.Length; lIndex++)
-          {
-            // add spacers to lines that didn't have notes
-            if (!addedToLine[lIndex]) measureLines[lIndex] += "--";
-            // add spacers to all lines (TODO something something rhythm)
-            measureLines[lIndex] += "-";
-          }
-          addedToLine = new[] { false, false, false, false, false, false };
-        }
-
-        measureLines[pn.stringIndex] += pn.fret.ToString().PadRight(2, '-'); // TODO more elegant handling of 2 digit frets
-        addedToLine[pn.stringIndex] = true;
+      if (blockLines[0] != null && (blockLines[0].Length + measureLength > 119)) {
+        // end this block
+        result += String.Join('\n', blockLines.Select(l => l + "|")) + "\n\n";
+        blockLines = new string[this.numStrings];
       }
 
-      result += String.Join('\n', measureLines) + "\n\n";
+      blockLines = blockLines.Select((line, i) => line + measureLines[i]).ToArray();
     }
+    result += String.Join('\n', blockLines.Select(l => l + "|")) + "\n\n";
+    blockLines = new string[this.numStrings];
 
     return result;
+  }
+
+  private string[] measureIndexToLines(int measureIndex) {
+    var pm = this.playingMeasures[measureIndex];
+    var measureLines = new string[this.numStrings];
+    Array.Fill(measureLines, "|-"); // should return the array >:(
+
+    double lastMeasureStart = 0;
+    var addedToLine = new bool[this.numStrings];
+
+    // add all the notes
+    for (int nIndex = 0; nIndex < pm.notes.Count; nIndex++)
+    {
+      var pn = pm.notes[nIndex];
+
+      double currentMeasureStart = this.song.measures[measureIndex].notes[nIndex].measureStart;
+      if (currentMeasureStart > lastMeasureStart)
+      {
+        lastMeasureStart = currentMeasureStart;
+        for (int lIndex = 0; lIndex < measureLines.Length; lIndex++)
+        {
+          // add spacers to lines that didn't have notes
+          if (!addedToLine[lIndex]) measureLines[lIndex] += "--";
+          // add spacers to all lines (TODO something something rhythm)
+          measureLines[lIndex] += "-";
+        }
+        addedToLine = new[] { false, false, false, false, false, false };
+      }
+
+      measureLines[pn.stringIndex] += pn.fret.ToString().PadRight(2, '-'); // TODO more elegant handling of 2 digit frets
+      addedToLine[pn.stringIndex] = true;
+    }
+
+    // handle the right side spacing
+    int maxLineLength = measureLines.MaxBy(l => l.Length).Length;
+    return measureLines.Select(l => l.PadRight(maxLineLength + 1, '-')).ToArray();
   }
 }
