@@ -27,4 +27,13 @@ app.MapPost("/tab/parse", ([FromBody] TabForm tabForm) =>
   return JsonSerializer.Serialize(song);
 });
 
+app.MapPost("/tab/optimize", ([FromBody] OptimizeForm optimizeForm) =>
+{
+  var playing = new Playing(optimizeForm);
+
+  playing.optimizeDistance(optimizeForm.iterations);
+
+  return playing.ToString();
+});
+
 app.Run();
