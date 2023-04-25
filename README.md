@@ -1,3 +1,1 @@
-C# API for Guitar Buddy.
-
-https://learn.microsoft.com/en-us/aspnet/core/tutorials/min-web-api?view=aspnetcore-7.0&tabs=visual-studio-code
+C# API for Guitar Buddy. Check out project explanation and demo [here](http://github.com/quinnlas/guitar-buddy-front). The backend is an ASP.NET Core Minimal API. It uses a custom parsing algorithm to parse text tabs, simulated annealing to optimize the tab to make it easier to play, and NUnit to test the parsing function.
