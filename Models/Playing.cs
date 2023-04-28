@@ -140,20 +140,19 @@ public class Playing
   private double scoreDistance(List<PlayingMeasure> measures) {
     double distance = 0.0;
 
+    PlayingNote lastNote = null;
     for (int i = 0; i < measures.Count; i++) {
       var measure = measures[i];
-      for (int j = i == 0 ? 1 : 0; j < measure.notes.Count; j++) {
-        PlayingNote note1;
-        if (j != 0) note1 = measure.notes[j - 1];
-        else {
-          // find closest previous measure with any notes
-          var measureWithNote1 = measures.Take(i).Last(m => m.notes.Count > 0);
-          note1 = measureWithNote1.notes.Last();
+      for (int j = 0 ; j < measure.notes.Count; j++) {
+        var curNote = measure.notes[j];
+        // don't count open string notes since you don't have to move your hand for them
+        if (curNote.fret == 0) continue;
+        if (lastNote != null) {
+          double xDist = this.fretDistances[lastNote.fret] - this.fretDistances[curNote.fret];
+          double yDist = (lastNote.stringIndex - curNote.stringIndex) * this.stringDistance;
+          distance += Math.Sqrt(xDist * xDist + yDist * yDist);
         }
-        var note2 = measure.notes[j];
-        double xDist = this.fretDistances[note2.fret] - this.fretDistances[note1.fret];
-        double yDist = (note2.stringIndex - note1.stringIndex) * this.stringDistance;
-        distance += Math.Sqrt(xDist * xDist + yDist * yDist);
+        lastNote = curNote;
       }
     }
 

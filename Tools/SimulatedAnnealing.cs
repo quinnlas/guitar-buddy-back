@@ -22,6 +22,7 @@ class SimulatedAnnealing
         score = newScore;
       }
     }
+    Console.WriteLine(100);
 
     return solution;
   }
